@@ -1,0 +1,94 @@
+xiqc-py — Project Status Snapshot
+Date: 2026-05-10
+====================================
+
+WHAT THIS IS
+------------
+A Python library + CLI for the ExtremeCloud IQ Controller (XIQ-C) REST API.
+Target: AP/Station/Site inventory, telemetry pipeline feed, RF ML data.
+License: Apache 2.0. Repo is PUBLIC.
+
+CURRENT STATE: Skeleton / Foundation complete
+---------------------------------------------
+All core plumbing is in place but NO real API endpoints are implemented yet.
+Everything is typed, linted, tested — nothing is a stub that would break callers.
+
+Files and what's done:
+
+  src/xiqc/exceptions.py   DONE
+    XiqcError, XiqcAuthError, XiqcAPIError, XiqcConnectionError defined.
+
+  src/xiqc/auth.py         DONE
+    AuthClient: password grant, proactive refresh (< 300 s threshold),
+    fallback from refresh grant to password grant, secrets never logged.
+
+  src/xiqc/_http.py        DONE
+    build_client() — httpx.Client factory with TLS + timeout.
+    _throttle()    — enforces ≤ 2 req/s per controller (global, sync).
+
+  src/xiqc/client.py       SKELETON — extend here next
+    XiqcClient with _request() plumbing only.
+    No real API methods yet (no aps_list, stations_list, sites_list, etc.).
+
+  src/xiqc/models.py       SKELETON — extend here next
+    Only XiqcModel base class (pydantic, extra="ignore").
+    No concrete response models yet.
+
+  src/xiqc/cli.py          SKELETON — extend after client/models
+    Typer app with `aps` and `stations` sub-apps wired.
+    All commands print "not yet implemented".
+
+  tests/test_auth.py       DONE (3 tests, all passing)
+    password grant, bad credentials, expired token triggers refresh.
+
+  tests/test_client.py     DONE (2 tests, all passing)
+    API error → XiqcAPIError, connection error → XiqcConnectionError.
+
+  tests/conftest.py        EXISTS (check if content is needed)
+
+
+WHAT TO DO NEXT (priority order)
+----------------------------------
+1. Add pydantic models to models.py for the first real endpoints:
+     - AP list response  (GET /v1/aps)
+     - Station list      (GET /v1/stations)
+     - Site list         (GET /v1/sites)
+
+2. Add methods to XiqcClient:
+     - list_aps()  → list[ApModel]
+     - list_stations() → list[StationModel]
+   Define path constants at module top, not inline strings.
+
+3. Wire CLI commands (cli.py) to the real client methods.
+   Commands read env vars → build XiqcClient → call method → print/format output.
+
+4. Add tests for each new client method (respx mocks, synthetic fixture JSON).
+
+5. Cover SmartRF endpoints later:
+     - per-AP:   GET /v2/aps/{serial}/smartrf
+     - per-site: GET /v4/sites/{siteId}/smartrf
+   Note: mixed API versions (/v1, /v2, /v3, /v4) — do NOT normalise.
+
+
+KEY CONSTRAINTS TO REMEMBER
+----------------------------
+- All HTTP goes through XiqcClient._request(). Never call httpx directly elsewhere.
+- All auth goes through AuthClient. Never pass tokens inline.
+- All responses must parse into pydantic models. No raw dict returns.
+- CLI commands are thin: env → client → format. No business logic.
+- Rate limit: ≤ 2 req/s (already enforced by _throttle in _http.py).
+- TLS: default verify=True. Honour XIQC_VERIFY=false but log a warning.
+- No real customer data anywhere — synthetic values only (see CLAUDE.md).
+- Dependency changes need a human decision before adding.
+
+TOOLCHAIN
+---------
+  uv run pytest              # run tests
+  uv run pytest --cov=xiqc   # with coverage
+  uv run ruff check .        # lint
+  uv run ruff format .        # format
+  uv run mypy src/            # type check
+
+BASE URL pattern: https://{host}:5825/management/v1{path}
+Auth endpoint:    POST /management/v1/oauth2/token
+Token lifetime:   7200 s. Refresh threshold: 300 s remaining.

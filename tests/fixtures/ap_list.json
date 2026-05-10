@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "serialNumber": "LAB-AP-0001",
+      "macAddress": "02:00:00:01:00:01",
+      "hostname": "lab-ap-01.example.test",
+      "ipAddress": "10.99.0.1"
+    },
+    {
+      "serialNumber": "LAB-AP-0002",
+      "macAddress": "02:00:00:01:00:02",
+      "hostname": "lab-ap-02.example.test",
+      "ipAddress": "10.99.0.2"
+    }
+  ],
+  "totalCount": 2
+}
