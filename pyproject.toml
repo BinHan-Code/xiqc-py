@@ -40,3 +40,6 @@ python_version = "3.11"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: live controller tests (requires XIQC_HOST env var)",
+]

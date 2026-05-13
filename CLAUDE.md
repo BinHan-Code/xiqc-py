@@ -85,9 +85,11 @@ xiqc-py/
 │   ├── cli.py             # typer app
 │   └── _http.py           # internal httpx setup, retry, throttle
 ├── tests/
-│   ├── conftest.py
+│   ├── conftest.py        # live_client fixture (session-scoped, skips if no XIQC_HOST)
 │   ├── test_auth.py
 │   ├── test_client.py
+│   ├── test_cli.py
+│   ├── test_integration.py  # live controller tests (marked integration)
 │   └── fixtures/          # canned API responses (synthetic only)
 ├── .github/workflows/ci.yml
 ├── pyproject.toml
@@ -118,12 +120,24 @@ Prefer extending an existing module over creating new ones until a module exceed
 ## Test conventions
 
 - One test file per source file. `src/xiqc/auth.py` → `tests/test_auth.py`.
-- Use `respx` to mock `httpx`. **No real network calls in tests.**
+- Use `respx` to mock `httpx` in unit tests. **No real network calls in `test_auth`, `test_client`, or `test_cli`.**
 - Fixtures live in `tests/fixtures/`. Real-looking but fully synthetic data.
   **No real serial numbers, IPs, MAC addresses, hostnames, or customer names — ever.**
 - Test naming: `test_<unit>_<scenario>_<expected>`.
   Example: `test_auth_expired_token_triggers_refresh`.
 - Coverage target: **≥ 90 %** on `auth.py` and `client.py`. Lower acceptable on `cli.py`.
+
+### Integration tests (`test_integration.py`)
+
+- All live tests carry `@pytest.mark.integration` (applied via module-level `pytestmark`).
+- Use the `live_client` fixture from `conftest.py` — it builds a real `XiqcClient` from
+  env vars and **auto-skips** the entire test if `XIQC_HOST` is not set.
+- Assert structure only (correct model type, non-empty primary key). Never assert
+  specific AP names, IPs, or site names — those differ per lab environment.
+- **Never write real API responses to `tests/fixtures/`** — that would leak customer data.
+- SmartRF tests catch `XiqcAPIError` and call `pytest.skip()` — SmartRF may not be
+  licensed on all controllers; that is not a test failure.
+- Run with: `python -m pytest -m integration -v` (requires env vars set first).
 
 ---
 
@@ -155,7 +169,7 @@ uv run pre-commit install        # install git hooks
 pip install -e ".[dev]"          # if uv is not installed
 
 # Development
-uv run pytest                    # run all tests
+uv run pytest                    # run all tests (unit; integration skipped unless XIQC_HOST set)
 uv run pytest -k auth            # run a subset by keyword
 uv run pytest --cov=xiqc         # with coverage
 uv run ruff check .              # lint
@@ -166,10 +180,20 @@ uv run mypy src/                 # type check
 python -m pytest
 python -m pytest -k auth
 
+# Integration tests against a real controller (PowerShell)
+$env:XIQC_HOST="192.168.x.x"; $env:XIQC_USER="admin"; $env:XIQC_PASS="..."; $env:XIQC_VERIFY="false"
+python -m pytest -m integration -v    # live tests only
+python -m pytest -v                   # unit + live together
+
 # CLI usage (after install)
 xiqc aps list
-xiqc aps report --serial LAB-AP-0001
+xiqc aps list --format json
+xiqc aps report --serial <serial>
+xiqc aps smartrf --serial <serial>
 xiqc stations list
+xiqc stations list --no-active --duration 3D
+xiqc sites list
+xiqc sites smartrf --id <uuid>
 
 # Build
 uv build                         # build wheel + sdist
