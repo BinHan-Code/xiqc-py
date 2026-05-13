@@ -1,5 +1,5 @@
 xiqc-py — Project Status Snapshot
-Date: 2026-05-10
+Date: 2026-05-13
 ====================================
 
 WHAT THIS IS
@@ -8,87 +8,226 @@ A Python library + CLI for the ExtremeCloud IQ Controller (XIQ-C) REST API.
 Target: AP/Station/Site inventory, telemetry pipeline feed, RF ML data.
 License: Apache 2.0. Repo is PUBLIC.
 
-CURRENT STATE: Skeleton / Foundation complete
+CURRENT STATE: Core API surface implemented
 ---------------------------------------------
-All core plumbing is in place but NO real API endpoints are implemented yet.
-Everything is typed, linted, tested — nothing is a stub that would break callers.
+Auth, HTTP plumbing, five inventory endpoints, two SmartRF endpoints,
+CLI commands, pydantic models, and respx-mocked tests are all in place.
+35 tests passing. No known bugs.
 
 Files and what's done:
 
   src/xiqc/exceptions.py   DONE
-    XiqcError, XiqcAuthError, XiqcAPIError, XiqcConnectionError defined.
+    XiqcError, XiqcAuthError, XiqcAPIError, XiqcConnectionError.
 
   src/xiqc/auth.py         DONE
     AuthClient: password grant, proactive refresh (< 300 s threshold),
     fallback from refresh grant to password grant, secrets never logged.
+    Separate token/refresh endpoints (_TOKEN_PATH / _REFRESH_PATH).
 
   src/xiqc/_http.py        DONE
     build_client() — httpx.Client factory with TLS + timeout.
-    _throttle()    — enforces ≤ 2 req/s per controller (global, sync).
+    _throttle()    — enforces <= 2 req/s per controller (global, sync).
 
-  src/xiqc/client.py       SKELETON — extend here next
-    XiqcClient with _request() plumbing only.
-    No real API methods yet (no aps_list, stations_list, sites_list, etc.).
+  src/xiqc/models.py       DONE
+    XiqcModel base (pydantic v2, extra="ignore", populate_by_name=True).
+    Radio, Ap, ApStats, Station, Site — inventory models.
+    ApSmartRfRadio, ApSmartRf, SiteSmartRf — SmartRF models.
+    All fields use explicit Field(alias=...) to map API JSON keys.
 
-  src/xiqc/models.py       SKELETON — extend here next
-    Only XiqcModel base class (pydantic, extra="ignore").
-    No concrete response models yet.
+  src/xiqc/client.py       DONE — extend here for new endpoints
+    XiqcClient with full _request() plumbing (root-based URL, throttle,
+    auth injection, typed error raising).
+    list_aps(), get_ap(), list_ap_stats()
+    list_stations(active, duration)
+    list_sites()
+    get_ap_smartrf(serial)      — GET /management/v2/aps/{serial}/smartrf
+    get_site_smartrf(site_id)   — GET /management/v4/sites/{siteId}/smartrf
 
-  src/xiqc/cli.py          SKELETON — extend after client/models
-    Typer app with `aps` and `stations` sub-apps wired.
-    All commands print "not yet implemented".
+  src/xiqc/cli.py          DONE — extend here for new commands
+    xiqc aps list
+    xiqc aps report --serial <S>
+    xiqc aps smartrf --serial <S>
+    xiqc stations list [--no-active] [--duration 3H|3D|14D]
+    xiqc sites list
+    xiqc sites smartrf --id <UUID>
+    All commands support --format json|table. Errors map to exit codes
+    1 (auth), 2 (API), 3 (connection). Reads env vars only.
 
-  tests/test_auth.py       DONE (3 tests, all passing)
-    password grant, bad credentials, expired token triggers refresh.
-
-  tests/test_client.py     DONE (2 tests, all passing)
-    API error → XiqcAPIError, connection error → XiqcConnectionError.
-
-  tests/conftest.py        EXISTS (check if content is needed)
+  tests/test_auth.py       DONE (5 tests)
+  tests/test_client.py     DONE (15 tests)
+  tests/test_cli.py        DONE (22 tests)
+  tests/conftest.py        EXISTS (empty, placeholder)
+  tests/fixtures/          DONE
+    ap_list.json, ap_stats_list.json, station_list.json, site_list.json,
+    ap_smartrf.json, site_smartrf.json — all synthetic data
 
 
 WHAT TO DO NEXT (priority order)
 ----------------------------------
-1. Add pydantic models to models.py for the first real endpoints:
-     - AP list response  (GET /v1/aps)
-     - Station list      (GET /v1/stations)
-     - Site list         (GET /v1/sites)
+1. Flex report endpoint (compressed time-series data):
+     - GET management/v3/sites/report/flex
+       params: duration (3H/3D/14D), query (dataset key JSON)
+       response: [{frame: "<base64+zlib compressed payload>"}]
+       dataset keys: MuTable, ApTable, ApPollTable, SiteQoETable, etc.
+     - Requires base64+zlib decompression helper in _http.py or client.py
+     - Add FlexReport / FlexFrame pydantic model
+     - CLI: xiqc sites flex-report --id <UUID> --dataset ApTable
 
-2. Add methods to XiqcClient:
-     - list_aps()  → list[ApModel]
-     - list_stations() → list[StationModel]
-   Define path constants at module top, not inline strings.
+2. Station location:
+     - GET management/v1/stations/{mac}/location
+     - New StationLocation model
 
-3. Wire CLI commands (cli.py) to the real client methods.
-   Commands read env vars → build XiqcClient → call method → print/format output.
+3. Site stations:
+     - GET management/v3/sites/{id}/stations
+     - Reuses Station model
 
-4. Add tests for each new client method (respx mocks, synthetic fixture JSON).
+4. Platform Manager endpoints (second pass):
+     - GET platformmanager/v1/productversion
+     - GET platformmanager/v1/licenses/subscription/detailsreport
 
-5. Cover SmartRF endpoints later:
-     - per-AP:   GET /v2/aps/{serial}/smartrf
-     - per-site: GET /v4/sites/{siteId}/smartrf
-   Note: mixed API versions (/v1, /v2, /v3, /v4) — do NOT normalise.
+5. AP event log:
+     - GET platformmanager/v1/logging/aps/events/query
+     - New ApEvent model
+
+6. CI workflow (.github/workflows/ci.yml):
+     - Add GitHub Actions workflow: lint (ruff), type check (mypy), pytest
+     - Matrix: Python 3.11, 3.12, 3.13
+
+
+ENDPOINT MAP (from pyxccsdk source — confirmed official)
+---------------------------------------------------------
+All paths are relative to https://{host}:5825/
+
+APs
+  management/v1/aps                          GET list / GET {serial} / PUT {serial}  DONE
+  management/v1/aps/query                    GET stats (extended per-AP data)        DONE
+  management/v1/aps/reboot                   PUT  (body: serialNumbers)
+  management/v1/aps/{serial}/logs            PUT  (trigger log retrieval)
+  management/v1/aps/{serial}/traceurls       GET  (download URLs)
+  management/v1/state/aps                    GET  (connection state)
+  management/v2/aps/{serial}/smartrf         GET  SmartRF per AP                     DONE
+  management/v1/aps/clone                    POST
+  management/v1/aps/list                     DELETE (bulk delete)
+
+Stations / Clients (called "mus" in pyxccsdk)
+  management/v1/stations/query               GET  (params: showActive, duration)     DONE
+  management/v2/stations/query               GET  v2 version
+  management/v1/stations/{mac}/location      GET
+  management/v1/stations/disassociate        POST (body: macList)
+  management/v1/report/stations              GET  per-station report
+
+Sites
+  management/v3/sites                        GET list / GET {id} / POST / PUT {id}   DONE
+  management/v3/sites/nametoidmap            GET  name->uuid map
+  management/v3/sites/{id}/stations          GET  stations per site
+  management/v3/sites/report/location/floor/{fid}  GET floor location
+  management/v1/report/sites                 GET  network health per site
+  management/v4/sites/{siteId}/smartrf       GET  SmartRF per site (v4!)             DONE
+
+Reports / Datasets (time-series, compressed)
+  management/v3/sites/report/flex            GET  (params: duration, query JSON)
+    Dataset keys available:
+      MuTable, ApTable, MuEventTable
+      SwitchPortTable, SwitchTable
+      SiteQoETable, ApQoETable
+      LocationTable, VisitsTable
+      AuditLogTable, FilterRoleTable
+      SmartRfEventTable, SmartRfNoiseTable, SmartRfNeighborTable
+      ApPollTable
+    Duration: 3H / 3D / 14D
+    Format: Json (base64+zlib compressed in response), csv, Msgpack
+    Response shape: [{frame: "<base64 zlib compressed payload>"}]
+  management/v1/report/aps                   GET  AP utilization stats
+
+Auth
+  management/v1/oauth2/token                 POST password grant                     DONE
+  management/v1/oauth2/refreshToken          POST refresh grant                      DONE
+
+Platform Manager
+  platformmanager/v1/productversion          GET  firmware version
+  platformmanager/v1/ntpsettings             GET/PUT
+  platformmanager/v1/interfaces              GET  all interfaces
+  platformmanager/v1/logging/aps/events/query      GET AP event log
+  platformmanager/v1/logging/stations/events/query GET station event log
+  platformmanager/v1/logging/smartrf/events/query  GET SmartRF event log
+  platformmanager/v1/upgrades/apimages/list  GET  available AP images
+  platformmanager/v1/licenses/subscription/detailsreport  GET license info
+
+Radios / RF
+  management/v1/radios                       GET
+  management/v1/channelinspector             GET
+  management/v1/bestpractices                GET
+
+Profiles / Policies
+  management/v3/profiles                     GET/POST/PUT
+  management/v3/rfmgmt                       GET/POST/PUT  (SmartRF policies)
+  management/v4/airdefense                   GET/POST/PUT
+  management/v3/positioning                  GET/POST/PUT
+  management/v3/roles                        GET/POST/PUT
+  management/v1/ratelimiters                 GET/POST/PUT
+  management/v1/cos                          GET/POST/PUT
+  management/v1/topologies                   GET/POST/PUT
+  management/v1/services                     GET/POST/PUT  (networks/SSIDs)
+  management/v1/aaapolicy                    GET/POST/PUT
+  access-control/v1/rules                    GET/POST/PUT
+  access-control/v1/radius_servers           GET/POST/PUT
+
+
+KEY FIELD NAMES (response JSON — needed for pydantic models)
+-------------------------------------------------------------
+AP config object (from management/v1/aps):
+  serialNumber    — primary key / identifier
+  apName          — human name
+  hostSite        — site name the AP belongs to
+  radios[]        — list of radio dicts (mode, channelwidth, radioIndex, txBf)
+
+Station object (from management/v1/stations/query):
+  macAddress      — primary key
+  ipAddress       — client IP
+  (other fields TBD — need real fixture to enumerate)
+
+Site object (from management/v3/sites):
+  id              — UUID, primary key
+  siteName        — human name
+  country         — country string
+  timezone        — timezone string
+  features        — feature flags
+
+AP stats object (from management/v1/aps/query — "ApTable" dataset):
+  ApName, ApSerial, HwType, IP, MAC, SwVersion
+  SiteName, SiteUUID, Location
+  IsConnected, LastUpdate
+  ChannelFreq, ChannelWidth, ChannelUtilization, ChannelUtilizationAdjusted
+  ClearChannel, Clients, Noise, Power, Protocol, RadioIndex
+  RadioRxOccupancy, RxOccupancy, TxOccupancy, SNR
+
+SmartRF AP object (from management/v2/aps/{serial}/smartrf):
+  serialNumber    — AP serial (primary key)
+  radios[]        — list of {radioIndex, channel, power, noiseFloor}
+
+SmartRF site object (from management/v4/sites/{siteId}/smartrf):
+  siteId          — site UUID (primary key)
+  smartrfEnabled  — bool
 
 
 KEY CONSTRAINTS TO REMEMBER
 ----------------------------
-- All HTTP goes through XiqcClient._request(). Never call httpx directly elsewhere.
+- All HTTP goes through XiqcClient._request(). Never call httpx directly.
+- _request() uses self._root (https://host:port) as base; pass FULL paths
+  like /management/v1/aps, /management/v3/sites — never relative paths.
 - All auth goes through AuthClient. Never pass tokens inline.
-- All responses must parse into pydantic models. No raw dict returns.
-- CLI commands are thin: env → client → format. No business logic.
-- Rate limit: ≤ 2 req/s (already enforced by _throttle in _http.py).
-- TLS: default verify=True. Honour XIQC_VERIFY=false but log a warning.
-- No real customer data anywhere — synthetic values only (see CLAUDE.md).
+- All responses parse into pydantic models. No raw dict returns.
+- CLI commands are thin: env -> client -> format. No business logic.
+- Rate limit: <= 2 req/s (already enforced by _throttle in _http.py).
+- API versions are MIXED — /v1, /v2, /v3, /v4. Do NOT normalise.
+- No real customer data anywhere — synthetic values only.
 - Dependency changes need a human decision before adding.
 
 TOOLCHAIN
 ---------
-  uv run pytest              # run tests
-  uv run pytest --cov=xiqc   # with coverage
-  uv run ruff check .        # lint
-  uv run ruff format .        # format
-  uv run mypy src/            # type check
-
-BASE URL pattern: https://{host}:5825/management/v1{path}
-Auth endpoint:    POST /management/v1/oauth2/token
-Token lifetime:   7200 s. Refresh threshold: 300 s remaining.
+  python -m pytest              # run tests  (uv run pytest if uv available)
+  python -m pytest --cov=xiqc   # with coverage
+  python -m pytest -k auth      # subset by keyword
+  ruff check .                  # lint
+  ruff format .                 # format
+  mypy src/                     # type check

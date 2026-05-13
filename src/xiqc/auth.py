@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 GRANT_PASSWORD = "password"
 GRANT_REFRESH = "refresh_token"
 REFRESH_THRESHOLD = 300  # seconds before expiry to proactively refresh
+_TOKEN_PATH = "/oauth2/token"
+_REFRESH_PATH = "/oauth2/refreshToken"
 
 
 class AuthClient:
@@ -52,7 +54,8 @@ class AuthClient:
         if self._refresh_token:
             try:
                 self._token_request(
-                    {"grantType": GRANT_REFRESH, "refreshToken": self._refresh_token}
+                    {"grantType": GRANT_REFRESH, "refreshToken": self._refresh_token},
+                    path=_REFRESH_PATH,
                 )
                 return
             except XiqcAuthError:
@@ -63,11 +66,12 @@ class AuthClient:
                 "userId": self._user_id,
                 "password": self._password,
                 "scope": self._scope,
-            }
+            },
+            path=_TOKEN_PATH,
         )
 
-    def _token_request(self, body: dict[str, Any]) -> None:
-        url = f"{self._base_url}/oauth2/token"
+    def _token_request(self, body: dict[str, Any], path: str = _TOKEN_PATH) -> None:
+        url = f"{self._base_url}{path}"
         try:
             response = httpx.post(url, json=body, verify=self._verify)
         except httpx.RequestError as exc:

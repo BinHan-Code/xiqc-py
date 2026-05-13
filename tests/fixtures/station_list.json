@@ -1,0 +1,13 @@
+{
+  "data": [
+    {
+      "macAddress": "02:00:00:aa:bb:01",
+      "ipAddress": "10.99.1.101"
+    },
+    {
+      "macAddress": "02:00:00:aa:bb:02",
+      "ipAddress": "10.99.1.102"
+    }
+  ],
+  "totalCount": 2
+}

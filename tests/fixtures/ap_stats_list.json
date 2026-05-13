@@ -1,0 +1,48 @@
+{
+  "data": [
+    {
+      "ApSerial": "LAB-AP-0001",
+      "ApName": "lab-ap-01",
+      "HwType": "AP302W",
+      "IP": "10.99.0.1",
+      "MAC": "02:00:00:01:00:01",
+      "SwVersion": "10.18.01.0",
+      "SiteName": "Lab Site A",
+      "SiteUUID": "00000000-0000-0000-0000-000000000001",
+      "Location": "Building 1 / Floor 1",
+      "IsConnected": true,
+      "LastUpdate": "2026-01-01T00:00:00Z",
+      "ChannelFreq": 5180,
+      "ChannelWidth": 80,
+      "ChannelUtilization": 15.3,
+      "ChannelUtilizationAdjusted": 12.1,
+      "ClearChannel": 84.7,
+      "Clients": 5,
+      "Noise": -95.0,
+      "Power": 17.0,
+      "Protocol": "802.11ax",
+      "RadioIndex": 1,
+      "RadioRxOccupancy": 8.2,
+      "RxOccupancy": 6.5,
+      "TxOccupancy": 5.1,
+      "SNR": 42.0
+    },
+    {
+      "ApSerial": "LAB-AP-0002",
+      "ApName": "lab-ap-02",
+      "HwType": "AP302W",
+      "IP": "10.99.0.2",
+      "MAC": "02:00:00:01:00:02",
+      "SwVersion": "10.18.01.0",
+      "SiteName": "Lab Site A",
+      "SiteUUID": "00000000-0000-0000-0000-000000000001",
+      "IsConnected": true,
+      "Clients": 3,
+      "ChannelFreq": 2437,
+      "ChannelWidth": 20,
+      "ChannelUtilization": 31.0,
+      "SNR": 38.0
+    }
+  ],
+  "totalCount": 2
+}

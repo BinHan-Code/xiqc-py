@@ -1,6 +1,8 @@
-# CLAUDE.md — Project Context for `xiqc-py`
+# CLAUDE.md
 
-This file is read by Claude Code at the start of every session. Keep it concise, scannable, and current. Update it when conventions change.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Keep it concise, scannable, and current. Update it when conventions change.
 
 ---
 
@@ -57,7 +59,10 @@ These are easy to forget and break things subtly.
 - **Auth endpoint:** `POST /management/v1/oauth2/token` with JSON body
   `{"grantType": "password", "userId": "...", "password": "...", "scope": "..."}`.
 - **Token lifetime:** `expires_in` is `7200` seconds (2 hours). Refresh proactively when under **300 seconds** remain.
-- **Refresh:** use the `refresh_token` from the initial response with `grantType: "refresh_token"`.
+- **Refresh endpoint is different from the token endpoint:**
+  `POST /management/v1/oauth2/refreshToken` (not `/oauth2/token`).
+  Body: `{"grantType": "refresh_token", "refreshToken": "..."}`.
+  `AuthClient` handles this — see `_TOKEN_PATH` / `_REFRESH_PATH` constants in `auth.py`.
 - **TLS:** controllers commonly use self-signed certs in lab/PoC environments.
   Default to `verify=True`. Honour `XIQC_VERIFY=false` for lab use, but log a loud warning on first call. Production must use proper certs.
 - **API versioning:** paths mix `/v1`, `/v2`, `/v3`, `/v4`. **Do not normalise them.** Extreme uses different versions per endpoint intentionally.
@@ -142,19 +147,26 @@ This repo is **public**. The maintainer works for Extreme Networks supporting Ja
 ## Common commands
 
 ```bash
-# Setup
+# Setup (preferred — uv)
 uv sync                          # install deps from lockfile
 uv run pre-commit install        # install git hooks
 
+# Setup (fallback — plain pip)
+pip install -e ".[dev]"          # if uv is not installed
+
 # Development
 uv run pytest                    # run all tests
-uv run pytest -k auth            # run only auth tests
+uv run pytest -k auth            # run a subset by keyword
 uv run pytest --cov=xiqc         # with coverage
 uv run ruff check .              # lint
 uv run ruff format .             # format
 uv run mypy src/                 # type check
 
-# CLI usage (after `uv pip install -e .`)
+# Without uv
+python -m pytest
+python -m pytest -k auth
+
+# CLI usage (after install)
 xiqc aps list
 xiqc aps report --serial LAB-AP-0001
 xiqc stations list
@@ -215,6 +227,19 @@ For everything else, proceed and show a diff.
 - Mixing CLI output formatting with library logic.
 - Importing from private modules (`xiqc._http`) from outside the package.
 - Adding loops over many APs/sites without rate-limiting or batching.
+
+---
+
+## pyxccsdk — official reference (dev-only, not a runtime dep)
+
+`pyxccsdk` is Extreme Networks' own Python SDK for XIQ-C (TestPyPI: `pyxccsdk`).
+It is installed as a **dev-only** reference tool — **never add it to `[project.dependencies]`** (TestPyPI, pre-release, uses `requests` not `httpx`).
+
+Use it to discover endpoint URLs, request shapes, and response field names. The `xcc.api.Client.rest` dict in its source is the authoritative endpoint map. Key findings already extracted:
+- Stations are queried via `GET management/v1/stations/query` (params: `showActive`, `duration`).
+- Reports use `GET management/v3/sites/report/flex` — returns base64+zlib-compressed frames.
+- API versions are intentionally mixed: `/v1`, `/v2`, `/v3`, `/v4` — never normalise.
+- AP primary key: `serialNumber`. Station primary key: `macAddress`. Site primary key: `id` (UUID).
 
 ---
 

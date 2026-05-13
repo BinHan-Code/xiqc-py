@@ -1,0 +1,17 @@
+{
+  "serialNumber": "LAB-AP-0001",
+  "radios": [
+    {
+      "radioIndex": 0,
+      "channel": 6,
+      "power": 17.0,
+      "noiseFloor": -95.0
+    },
+    {
+      "radioIndex": 1,
+      "channel": 36,
+      "power": 17.0,
+      "noiseFloor": -93.0
+    }
+  ]
+}
