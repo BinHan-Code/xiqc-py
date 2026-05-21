@@ -168,8 +168,8 @@ def test_aps_stats_table_shows_rf_values(runner: CliRunner) -> None:
     )
     result = runner.invoke(app, ["aps", "stats"], env=_XIQC_ENV)
     assert result.exit_code == 0
-    assert "5180" in result.output   # channel_freq for LAB-AP-0001
-    assert "42.0" in result.output   # snr for LAB-AP-0001
+    assert "5180" in result.output  # channel_freq for LAB-AP-0001
+    assert "42.0" in result.output  # snr for LAB-AP-0001
 
 
 @respx.mock
