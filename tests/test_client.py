@@ -120,9 +120,17 @@ def test_list_ap_stats_returns_apstats_models(client: XiqcClient) -> None:
     stats = client.list_ap_stats()
     assert len(stats) == 2
     assert all(isinstance(s, ApStats) for s in stats)
-    assert stats[0].ap_serial == "LAB-AP-0001"
-    assert stats[0].snr == 42.0
-    assert stats[0].clients == 5
+    first = stats[0]
+    assert first.ap_serial == "LAB-AP-0001"
+    assert first.hw_type == "AP302W"
+    assert first.ip == "10.99.0.1"
+    assert first.mac == "02:00:00:01:00:01"
+    assert first.site_name == "Lab Site A"
+    assert first.is_connected is True
+    assert first.channel_freq == 5180
+    assert first.channel_utilization == 15.3
+    assert first.clients == 5
+    assert first.snr == 42.0
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +181,7 @@ def test_list_sites_returns_site_models(client: XiqcClient) -> None:
     assert sites[0].id == "00000000-0000-0000-0000-000000000001"
     assert sites[0].site_name == "Lab Site A"
     assert sites[0].country == "Japan"
+    assert sites[0].features == ["CENTRALIZED-SITE"]
 
 
 # ---------------------------------------------------------------------------
