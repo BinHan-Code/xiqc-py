@@ -5,14 +5,14 @@
       "siteName": "Lab Site A",
       "country": "Japan",
       "timezone": "Asia/Tokyo",
-      "features": {}
+      "features": ["CENTRALIZED-SITE"]
     },
     {
       "id": "00000000-0000-0000-0000-000000000002",
       "siteName": "Lab Site B",
       "country": "Japan",
       "timezone": "Asia/Tokyo",
-      "features": {}
+      "features": ["CENTRALIZED-SITE"]
     }
   ],
   "totalCount": 2

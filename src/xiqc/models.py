@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class XiqcModel(BaseModel):
@@ -19,6 +19,14 @@ class Radio(XiqcModel):
     channel_width: str | None = Field(default=None, alias="channelwidth")
     tx_bf: bool | None = Field(default=None, alias="txBf")
 
+    @field_validator("tx_bf", mode="before")
+    @classmethod
+    def _coerce_tx_bf(cls, v: object) -> object:
+        # API returns "enabled"/"disabled" strings instead of booleans.
+        if isinstance(v, str):
+            return v.lower() not in ("disabled", "false", "0", "no")
+        return v
+
 
 class Ap(XiqcModel):
     """AP configuration record from GET /management/v1/aps."""
@@ -30,35 +38,35 @@ class Ap(XiqcModel):
 
 
 class ApStats(XiqcModel):
-    """AP statistics record from the ApTable dataset (/management/v1/aps/query)."""
+    """AP statistics record from GET /management/v1/aps/query (camelCase field names)."""
 
-    ap_serial: str = Field(alias="ApSerial")
-    ap_name: str | None = Field(default=None, alias="ApName")
-    hw_type: str | None = Field(default=None, alias="HwType")
-    ip: str | None = Field(default=None, alias="IP")
-    mac: str | None = Field(default=None, alias="MAC")
-    sw_version: str | None = Field(default=None, alias="SwVersion")
-    site_name: str | None = Field(default=None, alias="SiteName")
-    site_uuid: str | None = Field(default=None, alias="SiteUUID")
-    location: str | None = Field(default=None, alias="Location")
-    is_connected: bool | None = Field(default=None, alias="IsConnected")
-    last_update: str | None = Field(default=None, alias="LastUpdate")
-    channel_freq: int | None = Field(default=None, alias="ChannelFreq")
-    channel_width: int | None = Field(default=None, alias="ChannelWidth")
-    channel_utilization: float | None = Field(default=None, alias="ChannelUtilization")
+    ap_serial: str = Field(alias="serialNumber")
+    ap_name: str | None = Field(default=None, alias="apName")
+    hw_type: str | None = Field(default=None, alias="hardwareType")
+    ip: str | None = Field(default=None, alias="ipAddress")
+    mac: str | None = Field(default=None, alias="macAddress")
+    sw_version: str | None = Field(default=None, alias="swVersion")
+    site_name: str | None = Field(default=None, alias="siteName")
+    site_uuid: str | None = Field(default=None, alias="siteUuid")
+    location: str | None = Field(default=None, alias="location")
+    is_connected: bool | None = Field(default=None, alias="isConnected")
+    last_update: str | None = Field(default=None, alias="lastUpdate")
+    channel_freq: int | None = Field(default=None, alias="channelFreq")
+    channel_width: int | None = Field(default=None, alias="channelWidth")
+    channel_utilization: float | None = Field(default=None, alias="channelUtilization")
     channel_utilization_adjusted: float | None = Field(
-        default=None, alias="ChannelUtilizationAdjusted"
+        default=None, alias="channelUtilizationAdjusted"
     )
-    clear_channel: float | None = Field(default=None, alias="ClearChannel")
-    clients: int | None = Field(default=None, alias="Clients")
-    noise: float | None = Field(default=None, alias="Noise")
-    power: float | None = Field(default=None, alias="Power")
-    protocol: str | None = Field(default=None, alias="Protocol")
-    radio_index: int | None = Field(default=None, alias="RadioIndex")
-    radio_rx_occupancy: float | None = Field(default=None, alias="RadioRxOccupancy")
-    rx_occupancy: float | None = Field(default=None, alias="RxOccupancy")
-    tx_occupancy: float | None = Field(default=None, alias="TxOccupancy")
-    snr: float | None = Field(default=None, alias="SNR")
+    clear_channel: float | None = Field(default=None, alias="clearChannel")
+    clients: int | None = Field(default=None, alias="clients")
+    noise: float | None = Field(default=None, alias="noise")
+    power: float | None = Field(default=None, alias="power")
+    protocol: str | None = Field(default=None, alias="protocol")
+    radio_index: int | None = Field(default=None, alias="radioIndex")
+    radio_rx_occupancy: float | None = Field(default=None, alias="radioRxOccupancy")
+    rx_occupancy: float | None = Field(default=None, alias="rxOccupancy")
+    tx_occupancy: float | None = Field(default=None, alias="txOccupancy")
+    snr: float | None = Field(default=None, alias="snr")
 
 
 class Station(XiqcModel):
@@ -75,7 +83,7 @@ class Site(XiqcModel):
     site_name: str | None = Field(default=None, alias="siteName")
     country: str | None = None
     timezone: str | None = None
-    features: dict[str, Any] | None = None
+    features: list[str] | None = None
 
 
 class ApSmartRfRadio(XiqcModel):
