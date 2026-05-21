@@ -142,6 +142,61 @@ def test_aps_report_missing_serial_exits(runner: CliRunner) -> None:
 
 
 # ---------------------------------------------------------------------------
+# aps stats
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+def test_aps_stats_table_shows_serials(runner: CliRunner) -> None:
+    _mock_token()
+    respx.get(f"{_ROOT}/management/v1/aps/query").mock(
+        return_value=httpx.Response(200, json=_fixture("ap_stats_list.json"))
+    )
+    result = runner.invoke(app, ["aps", "stats"], env=_XIQC_ENV)
+    assert result.exit_code == 0
+    assert "LAB-AP-0001" in result.output
+    assert "LAB-AP-0002" in result.output
+    assert "SERIAL" in result.output
+    assert "SNR" in result.output
+
+
+@respx.mock
+def test_aps_stats_table_shows_rf_values(runner: CliRunner) -> None:
+    _mock_token()
+    respx.get(f"{_ROOT}/management/v1/aps/query").mock(
+        return_value=httpx.Response(200, json=_fixture("ap_stats_list.json"))
+    )
+    result = runner.invoke(app, ["aps", "stats"], env=_XIQC_ENV)
+    assert result.exit_code == 0
+    assert "5180" in result.output   # channel_freq for LAB-AP-0001
+    assert "42.0" in result.output   # snr for LAB-AP-0001
+
+
+@respx.mock
+def test_aps_stats_json_output(runner: CliRunner) -> None:
+    _mock_token()
+    respx.get(f"{_ROOT}/management/v1/aps/query").mock(
+        return_value=httpx.Response(200, json=_fixture("ap_stats_list.json"))
+    )
+    result = runner.invoke(app, ["aps", "stats", "--format", "json"], env=_XIQC_ENV)
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert isinstance(data, list)
+    assert len(data) == 2
+    assert data[0]["ap_serial"] == "LAB-AP-0001"
+
+
+@respx.mock
+def test_aps_stats_api_error_exits_2(runner: CliRunner) -> None:
+    _mock_token()
+    respx.get(f"{_ROOT}/management/v1/aps/query").mock(
+        return_value=httpx.Response(500, text="Internal Server Error")
+    )
+    result = runner.invoke(app, ["aps", "stats"], env=_XIQC_ENV)
+    assert result.exit_code == 2
+
+
+# ---------------------------------------------------------------------------
 # stations list
 # ---------------------------------------------------------------------------
 

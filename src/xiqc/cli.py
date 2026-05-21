@@ -127,6 +127,37 @@ def aps_report(
         typer.echo(_table(rows, ["Field", "Value"]))
 
 
+@aps_app.command("stats")
+def aps_stats(
+    fmt: _Fmt = typer.Option(_Fmt.table, "--format", "-f", help="Output format."),
+) -> None:
+    """Show per-AP RF statistics (channel, utilisation, SNR, clients)."""
+    try:
+        stats = _make_client().list_ap_stats()
+    except (XiqcAuthError, XiqcAPIError, XiqcConnectionError) as exc:
+        _exit_on_error(exc)
+        return
+    if fmt == _Fmt.json:
+        _print_json([s.model_dump(by_alias=False) for s in stats])
+    else:
+        rows = [
+            [
+                s.ap_serial,
+                s.ap_name or "",
+                s.site_name or "",
+                str(s.clients or ""),
+                str(s.channel_freq or ""),
+                f"{s.channel_utilization:.1f}"
+                if s.channel_utilization is not None
+                else "",
+                f"{s.snr:.1f}" if s.snr is not None else "",
+            ]
+            for s in stats
+        ]
+        headers = ["SERIAL", "NAME", "SITE", "CLIENTS", "CH_MHZ", "UTIL%", "SNR"]
+        typer.echo(_table(rows, headers))
+
+
 # ---------------------------------------------------------------------------
 # stations
 # ---------------------------------------------------------------------------
