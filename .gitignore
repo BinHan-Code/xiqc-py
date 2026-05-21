@@ -33,6 +33,7 @@ htmlcov/
 
 # Local notes (may contain credentials)
 Memo
+STATUS.txt
 
 # Claude Code local data
 .claude/
