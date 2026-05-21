@@ -33,3 +33,6 @@ htmlcov/
 
 # Local notes (may contain credentials)
 Memo
+
+# Claude Code local data
+.claude/
