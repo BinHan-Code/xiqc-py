@@ -45,7 +45,9 @@ def test_auth_bad_credentials_raises_xiqcautherror(auth_client: AuthClient) -> N
 @respx.mock
 def test_auth_expired_token_triggers_refresh(auth_client: AuthClient) -> None:
     respx.post(_TOKEN_URL).mock(return_value=httpx.Response(200, json=_TOKEN_RESPONSE))
-    respx.post(_REFRESH_URL).mock(return_value=httpx.Response(200, json=_TOKEN_RESPONSE))
+    respx.post(_REFRESH_URL).mock(
+        return_value=httpx.Response(200, json=_TOKEN_RESPONSE)
+    )
     _ = auth_client.access_token
     auth_client._expires_at = time.monotonic()  # force expiry
     _ = auth_client.access_token
@@ -55,7 +57,9 @@ def test_auth_expired_token_triggers_refresh(auth_client: AuthClient) -> None:
 @respx.mock
 def test_auth_refresh_uses_separate_endpoint(auth_client: AuthClient) -> None:
     respx.post(_TOKEN_URL).mock(return_value=httpx.Response(200, json=_TOKEN_RESPONSE))
-    respx.post(_REFRESH_URL).mock(return_value=httpx.Response(200, json=_TOKEN_RESPONSE))
+    respx.post(_REFRESH_URL).mock(
+        return_value=httpx.Response(200, json=_TOKEN_RESPONSE)
+    )
     _ = auth_client.access_token
     auth_client._expires_at = time.monotonic()  # force expiry
     _ = auth_client.access_token

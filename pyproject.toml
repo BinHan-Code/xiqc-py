@@ -34,6 +34,9 @@ line-length = 88
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/xiqc/cli.py" = ["B008"]  # typer.Option() in defaults is the intended typer pattern
+
 [tool.mypy]
 strict = true
 python_version = "3.11"

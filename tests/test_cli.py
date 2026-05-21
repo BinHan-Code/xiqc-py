@@ -111,7 +111,9 @@ def test_aps_report_table_shows_serial(runner: CliRunner) -> None:
     respx.get(f"{_ROOT}/management/v1/aps/LAB-AP-0001").mock(
         return_value=httpx.Response(200, json=ap_data)
     )
-    result = runner.invoke(app, ["aps", "report", "--serial", "LAB-AP-0001"], env=_XIQC_ENV)
+    result = runner.invoke(
+        app, ["aps", "report", "--serial", "LAB-AP-0001"], env=_XIQC_ENV
+    )
     assert result.exit_code == 0
     assert "LAB-AP-0001" in result.output
     assert "Serial" in result.output
@@ -125,7 +127,9 @@ def test_aps_report_json_output(runner: CliRunner) -> None:
         return_value=httpx.Response(200, json=ap_data)
     )
     result = runner.invoke(
-        app, ["aps", "report", "--serial", "LAB-AP-0001", "--format", "json"], env=_XIQC_ENV
+        app,
+        ["aps", "report", "--serial", "LAB-AP-0001", "--format", "json"],
+        env=_XIQC_ENV,
     )
     assert result.exit_code == 0
     data = json.loads(result.output)
@@ -212,9 +216,11 @@ def test_aps_smartrf_table_shows_channels(runner: CliRunner) -> None:
     respx.get(f"{_ROOT}/management/v2/aps/LAB-AP-0001/smartrf").mock(
         return_value=httpx.Response(200, json=_fixture("ap_smartrf.json"))
     )
-    result = runner.invoke(app, ["aps", "smartrf", "--serial", "LAB-AP-0001"], env=_XIQC_ENV)
+    result = runner.invoke(
+        app, ["aps", "smartrf", "--serial", "LAB-AP-0001"], env=_XIQC_ENV
+    )
     assert result.exit_code == 0
-    assert "6" in result.output   # channel for radio 0
+    assert "6" in result.output  # channel for radio 0
     assert "36" in result.output  # channel for radio 1
     assert "CHANNEL" in result.output
 
@@ -226,7 +232,9 @@ def test_aps_smartrf_json_output(runner: CliRunner) -> None:
         return_value=httpx.Response(200, json=_fixture("ap_smartrf.json"))
     )
     result = runner.invoke(
-        app, ["aps", "smartrf", "--serial", "LAB-AP-0001", "--format", "json"], env=_XIQC_ENV
+        app,
+        ["aps", "smartrf", "--serial", "LAB-AP-0001", "--format", "json"],
+        env=_XIQC_ENV,
     )
     assert result.exit_code == 0
     data = json.loads(result.output)
@@ -240,7 +248,9 @@ def test_aps_smartrf_api_error_exits_2(runner: CliRunner) -> None:
     respx.get(f"{_ROOT}/management/v2/aps/LAB-AP-0001/smartrf").mock(
         return_value=httpx.Response(404, text="Not Found")
     )
-    result = runner.invoke(app, ["aps", "smartrf", "--serial", "LAB-AP-0001"], env=_XIQC_ENV)
+    result = runner.invoke(
+        app, ["aps", "smartrf", "--serial", "LAB-AP-0001"], env=_XIQC_ENV
+    )
     assert result.exit_code == 2
 
 

@@ -47,7 +47,10 @@ class XiqcClient:
         self._http = build_client(verify=verify, timeout=timeout)
 
     def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
-        """Send a throttled, authenticated request; path must be a full /management/... path."""
+        """Send a throttled, authenticated request.
+
+        ``path`` must be a full ``/management/...`` path.
+        """
         _throttle()
         url = f"{self._root}{path}"
         headers = {"Authorization": f"Bearer {self._auth.access_token}"}
@@ -60,7 +63,7 @@ class XiqcClient:
         return response
 
     def _unwrap_list(self, response: httpx.Response) -> list[Any]:
-        """Extract the item list from a response, unwrapping a ``data`` envelope if present."""
+        """Extract the item list from a response, unwrapping a ``data`` envelope."""
         payload = response.json()
         if isinstance(payload, dict) and "data" in payload:
             return payload["data"]  # type: ignore[no-any-return]
@@ -88,7 +91,7 @@ class XiqcClient:
 
         Args:
             active: When True, return only currently associated stations.
-            duration: Time window for historical queries — one of ``3H``, ``3D``, ``14D``.
+            duration: Time window — one of ``3H``, ``3D``, ``14D``.
         """
         params = {"showActive": str(active).lower(), "duration": duration}
         items = self._unwrap_list(
@@ -102,11 +105,17 @@ class XiqcClient:
         return [Site.model_validate(item) for item in items]
 
     def get_ap_smartrf(self, serial: str) -> ApSmartRf:
-        """Return SmartRF channel/power assignments for an AP from GET /management/v2/aps/{serial}/smartrf."""
+        """Return SmartRF channel/power assignments for an AP.
+
+        Calls GET /management/v2/aps/{serial}/smartrf.
+        """
         data = self._request("GET", _PATH_AP_SMARTRF.format(serial)).json()
         return ApSmartRf.model_validate(data)
 
     def get_site_smartrf(self, site_id: str) -> SiteSmartRf:
-        """Return SmartRF configuration for a site from GET /management/v4/sites/{siteId}/smartrf."""
+        """Return SmartRF configuration for a site.
+
+        Calls GET /management/v4/sites/{siteId}/smartrf.
+        """
         data = self._request("GET", _PATH_SITE_SMARTRF.format(site_id)).json()
         return SiteSmartRf.model_validate(data)

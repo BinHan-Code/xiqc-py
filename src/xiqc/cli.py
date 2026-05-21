@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import os
-from enum import Enum
-from typing import Any, Union
+from enum import StrEnum
+from typing import Any
 
 import typer
 
@@ -20,7 +20,7 @@ app.add_typer(stations_app, name="stations")
 app.add_typer(sites_app, name="sites")
 
 
-class _Fmt(str, Enum):
+class _Fmt(StrEnum):
     json = "json"
     table = "table"
 
@@ -29,7 +29,11 @@ def _make_client() -> XiqcClient:
     host = os.environ.get("XIQC_HOST")
     user = os.environ.get("XIQC_USER")
     password = os.environ.get("XIQC_PASS")
-    missing = [n for n, v in (("XIQC_HOST", host), ("XIQC_USER", user), ("XIQC_PASS", password)) if not v]
+    missing = [
+        n
+        for n, v in (("XIQC_HOST", host), ("XIQC_USER", user), ("XIQC_PASS", password))
+        if not v
+    ]
     if missing:
         typer.echo(f"Error: {', '.join(missing)} must be set.", err=True)
         raise typer.Exit(1)
@@ -38,12 +42,21 @@ def _make_client() -> XiqcClient:
     verify_str = os.environ.get("XIQC_VERIFY", "true").lower()
     verify = verify_str not in ("false", "0", "no")
     if not verify:
-        typer.echo("Warning: TLS verification is disabled (XIQC_VERIFY=false).", err=True)
+        typer.echo(
+            "Warning: TLS verification is disabled (XIQC_VERIFY=false).", err=True
+        )
     timeout = float(os.environ.get("XIQC_TIMEOUT", "30"))
-    return XiqcClient(host=host, user_id=user, password=password, port=port, verify=verify, timeout=timeout)
+    return XiqcClient(
+        host=host,
+        user_id=user,
+        password=password,
+        port=port,
+        verify=verify,
+        timeout=timeout,
+    )
 
 
-_XiqcErrors = Union[XiqcAuthError, XiqcAPIError, XiqcConnectionError]
+_XiqcErrors = XiqcAuthError | XiqcAPIError | XiqcConnectionError
 
 
 def _exit_on_error(exc: _XiqcErrors) -> None:
@@ -62,7 +75,9 @@ def _print_json(data: Any) -> None:
 def _table(rows: list[list[str]], headers: list[str]) -> str:
     all_rows = [headers] + rows
     widths = [max(len(r[i]) for r in all_rows) for i in range(len(headers))]
-    lines = ["  ".join(h.ljust(widths[i]) for i, h in enumerate(row)) for row in all_rows]
+    lines = [
+        "  ".join(h.ljust(widths[i]) for i, h in enumerate(row)) for row in all_rows
+    ]
     lines.insert(1, "  ".join("-" * w for w in widths))
     return "\n".join(lines)
 
@@ -154,7 +169,9 @@ def sites_list(
     if fmt == _Fmt.json:
         _print_json([s.model_dump(by_alias=False) for s in sites])
     else:
-        rows = [[s.id, s.site_name or "", s.country or "", s.timezone or ""] for s in sites]
+        rows = [
+            [s.id, s.site_name or "", s.country or "", s.timezone or ""] for s in sites
+        ]
         typer.echo(_table(rows, ["ID", "NAME", "COUNTRY", "TIMEZONE"]))
 
 
@@ -173,7 +190,12 @@ def aps_smartrf(
         _print_json(result.model_dump(by_alias=False))
     else:
         rows = [
-            [str(r.radio_index), str(r.channel or ""), str(r.power or ""), str(r.noise_floor or "")]
+            [
+                str(r.radio_index),
+                str(r.channel or ""),
+                str(r.power or ""),
+                str(r.noise_floor or ""),
+            ]
             for r in result.radios
         ]
         typer.echo(_table(rows, ["RADIO", "CHANNEL", "POWER", "NOISE FLOOR"]))

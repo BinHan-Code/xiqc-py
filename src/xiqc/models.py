@@ -36,7 +36,7 @@ class Ap(XiqcModel):
 
 
 class ApStats(XiqcModel):
-    """AP statistics record from GET /management/v1/aps/query (camelCase field names)."""
+    """AP statistics record from GET /management/v1/aps/query."""
 
     ap_serial: str = Field(alias="serialNumber")
     ap_name: str | None = Field(default=None, alias="apName")
@@ -101,7 +101,7 @@ class ApSmartRf(XiqcModel):
 
 
 class SiteSmartRf(XiqcModel):
-    """SmartRF configuration for a site from GET /management/v4/sites/{siteId}/smartrf."""
+    """SmartRF configuration for a site from GET /management/v4/sites/{id}/smartrf."""
 
     site_id: str = Field(alias="siteId")
     smartrf_enabled: bool | None = Field(default=None, alias="smartrfEnabled")

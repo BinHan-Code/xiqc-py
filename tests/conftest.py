@@ -18,6 +18,7 @@ def live_client() -> XiqcClient:
         user_id=os.environ["XIQC_USER"],
         password=os.environ["XIQC_PASS"],
         port=int(os.environ.get("XIQC_PORT", "5825")),
-        verify=os.environ.get("XIQC_VERIFY", "true").lower() not in ("false", "0", "no"),
+        verify=os.environ.get("XIQC_VERIFY", "true").lower()
+        not in ("false", "0", "no"),
         timeout=float(os.environ.get("XIQC_TIMEOUT", "30")),
     )
