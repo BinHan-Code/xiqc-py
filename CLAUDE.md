@@ -91,7 +91,7 @@ xiqc-py/
 │   ├── test_cli.py
 │   ├── test_integration.py  # live controller tests (marked integration)
 │   └── fixtures/          # canned API responses (synthetic only)
-├── .github/workflows/ci.yml
+├── .github/workflows/ci.yml  # not yet created
 ├── pyproject.toml
 ├── README.md
 ├── CLAUDE.md              # this file
@@ -189,6 +189,8 @@ python -m pytest -v                   # unit + live together
 xiqc aps list
 xiqc aps list --format json
 xiqc aps report --serial <serial>
+xiqc aps stats
+xiqc aps stats --format json
 xiqc aps smartrf --serial <serial>
 xiqc stations list
 xiqc stations list --no-active --duration 3D
@@ -264,6 +266,11 @@ Use it to discover endpoint URLs, request shapes, and response field names. The 
 - Reports use `GET management/v3/sites/report/flex` — returns base64+zlib-compressed frames.
 - API versions are intentionally mixed: `/v1`, `/v2`, `/v3`, `/v4` — never normalise.
 - AP primary key: `serialNumber`. Station primary key: `macAddress`. Site primary key: `id` (UUID).
+- `/v1/aps/query` returns **camelCase** field names (`serialNumber`, `hardwareType`, `ipAddress`,
+  `snr`, etc.) — not PascalCase. The `ApStats` model aliases reflect the real response shape.
+- `Site.features` is a `list[str]` (e.g. `["CENTRALIZED-SITE"]`), not a dict.
+- `Radio.txBf` is returned as a string (`"enabled"`/`"disabled"`), not a boolean — the model
+  validator in `Radio` coerces it.
 
 ---
 
