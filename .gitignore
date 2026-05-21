@@ -30,3 +30,6 @@ htmlcov/
 .vscode/
 .idea/
 *.code-workspace
+
+# Local notes (may contain credentials)
+Memo
